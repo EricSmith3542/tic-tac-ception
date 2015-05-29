@@ -1,6 +1,7 @@
 package com.example.indstudy.tic_tac_ception;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.graphics.Color;
 import android.graphics.Point;
@@ -27,7 +28,7 @@ import android.view.View.OnClickListener;
 
 
 public class MainActivity extends Activity implements View.OnClickListener{
-    int width, height, index, position = -1;
+    int width, height, index, position = -1, lastButton = -1;
     Button buttons[] = new Button[81];
     RelativeLayout grids[] = new RelativeLayout[9];
     //GridLayout imageGrids[] = new GridLayout[9];
@@ -35,8 +36,10 @@ public class MainActivity extends Activity implements View.OnClickListener{
     Board outerBoard = new Board();
     ImageView oh[] = new ImageView[9];
     ImageView ex[] = new ImageView[9];
+    ImageView hifens[] = new ImageView[9];
     GradientDrawable shape, shape2, draw;
     boolean isX = true, won = false;
+    AlertDialog.Builder bob;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,6 +52,8 @@ public class MainActivity extends Activity implements View.OnClickListener{
         height = size.y;
         shape = (GradientDrawable)getResources().getDrawable(R.drawable.line);
         shape2 = (GradientDrawable)getResources().getDrawable(R.drawable.rect);
+
+        bob = new AlertDialog.Builder(this);
 
         index = 0;
         for(int layout = 0; layout < 9; layout++)
@@ -81,8 +86,14 @@ public class MainActivity extends Activity implements View.OnClickListener{
             ex[layout].setLayoutParams(params);
             ex[layout].setVisibility(View.GONE);
 
+            hifens[layout] = new ImageView(this);
+            hifens[layout].setLayoutParams(params);
+            hifens[layout].setImageDrawable(getResources().getDrawable(R.drawable.hyphen));
+            hifens[layout].setVisibility(View.GONE);
+
             grids[layout].addView(oh[layout]);
             grids[layout].addView(ex[layout]);
+            grids[layout].addView(hifens[layout]);
 
             if(layout%2 == 0)
             {
@@ -133,12 +144,19 @@ public class MainActivity extends Activity implements View.OnClickListener{
 
             }
 
-            for (int i = 0; i < boards.length; i++) {
-                boards[i].clear();
-                grids[i].setBackgroundColor(Color.BLACK);
-            }
             position = -1;
             outerBoard.clear();
+            won = false;
+
+            for(int i = 0; i < grids.length; i++)
+            {
+                boards[i].clear();
+                grids[i].setBackgroundColor(Color.BLACK);
+                grids[i].findViewById(81+i).setVisibility(View.VISIBLE);
+                ex[i].setVisibility(View.GONE);
+                oh[i].setVisibility(View.GONE);
+                hifens[i].setVisibility(View.GONE);
+            }
         }
 
 
@@ -153,6 +171,7 @@ public class MainActivity extends Activity implements View.OnClickListener{
         //Variables
         int currentGrid, oldPosition;
         currentGrid = v.getId()/9;
+
         //In case they try and cheat
         oldPosition = position;
 
@@ -165,6 +184,16 @@ public class MainActivity extends Activity implements View.OnClickListener{
             if (oldPosition != currentGrid)
                 return;
         }
+        else
+        {
+            for (int i = 0; i < grids.length; i++)
+            {
+                if(outerBoard.getButtonValue(i) == 0)
+                {
+                    grids[i].setBackgroundColor(Color.BLACK);
+                }
+            }
+        }
 
         position = v.getId()%9;
 
@@ -174,25 +203,44 @@ public class MainActivity extends Activity implements View.OnClickListener{
             return;
         }
 
+        if(lastButton != -1)
+        ((Button)findViewById(lastButton)).setTextColor(Color.BLACK);
+
         if (isX)
         {
             ((Button) v).setText("X");
         } else
             ((Button) v).setText("O");
 
+        ((Button) v).setTextColor(Color.RED);
+
+        lastButton = v.getId();
+
         grids[currentGrid].setBackgroundColor(Color.BLACK);
         if(boards[currentGrid].play(position, isX? 1:2))
         {
             if(outerBoard.play(currentGrid, isX? 1:2))
             {
-                ((Button) v).setText("Win");
                 won = true;
+                if(isX)
+                {
+                  bob.setMessage("X's Won!!! Yay!");
+                }
+                else
+                {
+                    bob.setMessage("O's Won!!! Yay!");
+                }
+                AlertDialog winner = bob.create();
+                winner.show();
             }
             else
             {
                 if(outerBoard.checkFinished())
                 {
-                    ((Button) v).setText("Cat");
+
+                    bob.setMessage("Cat Game...");
+                    AlertDialog cat = bob.create();
+                    cat.show();
                 }
                 else
                 {
@@ -208,12 +256,21 @@ public class MainActivity extends Activity implements View.OnClickListener{
             {
                 oh[currentGrid].setVisibility(View.VISIBLE);
             }
+            grids[currentGrid].setBackgroundColor(Color.WHITE);
         }
         else {
             if(boards[currentGrid].checkFinished())
             {
-                outerBoard.play(currentGrid, 3);
-                grids[currentGrid].setBackgroundColor(Color.RED);
+                if(outerBoard.play(currentGrid, 3))
+                {
+                    bob.setMessage("Cat Games won...wat?");
+                    AlertDialog wat = bob.create();
+                    wat.show();
+                    won = true;
+                }
+                hifens[currentGrid].setVisibility(View.VISIBLE);
+                grids[currentGrid].findViewById(81+currentGrid).setVisibility(View.GONE);
+                grids[currentGrid].setBackgroundColor(Color.WHITE);
                 grids[position].setBackgroundColor(Color.WHITE);
             }
             else
@@ -228,6 +285,10 @@ public class MainActivity extends Activity implements View.OnClickListener{
 
             if (outerBoard.getButtonValue(position) != 0) {
                 position = -1;
+                for(int i = 0; i < grids.length; i++)
+                {
+                    grids[i].setBackgroundColor(Color.WHITE);
+                }
             }
 
     }
